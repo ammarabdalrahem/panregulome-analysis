@@ -31,14 +31,18 @@ data <- melt(data, value.name = "N_bp", variable.name = "Condition")
 
 
 # Stacked + percent
-png("repeats_plot.png")
 
-ggplot(data, aes(fill=Condition,y=N_bp, x=Ecotypes)) + 
-  geom_bar(position="stack", stat="identity") +
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))+
+tiff("repeats_plot.eps", units="in", width=7, height=5, res=300) #.eps for illustrator
+
+ggplot(data, aes(fill=Condition,y=N_bp, x=Ecotypes)) +
+  geom_bar(position="stack", stat="identity", width=0.5) +
+  theme(axis.text.x=element_text(angle=90,size = rel(0.8), margin = margin(1, unit = "cm"),vjust =1))+ #change size and angle of x axis
   xlab("Ecotypes")+            # for the x axis label
-  ylab("length (bp)") 
+  ylab("length (bp)") + theme(legend.key.height= unit(0.3, 'cm'), #change size of legend.key
+        legend.key.width= unit(0.3, 'cm'))+
+  theme(legend.title = element_text(size=5))+theme(legend.text = element_text(size=5))+ # change size of tilte and text for legend squre
+theme(axis.title=element_text(size=6,face="bold"))
 
-dev.off()
+dev.off() #save a plot photo
 
 
