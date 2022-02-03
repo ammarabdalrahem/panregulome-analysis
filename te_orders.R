@@ -37,19 +37,25 @@ data_other <- (data[data$Order %nin% c("LTR", "DNA","TIR" ),])
 
 # plotting specific orders
 #ggplot(data , aes(fill=Order,y=Length, x=Ecotype)) + 
-  geom_bar(position="fill", stat="identity") +
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))+
-  xlab("Ecotypes")+            # for the x axis label
-  ylab("length(bp)") +
-  facet_zoom(x = Order  %nin% c("LTR", "DNA","TIR" ))
+  #geom_bar(position="fill", stat="identity") +
+  #theme(axis.text.x=element_text(angle=45,size = rel(0.5),vjust =1))+
+  #xlab("Ecotypes")+            # for the x axis label
+  #ylab("length(bp)") +
+  #facet_zoom(x = Order  %nin% c("LTR", "DNA","TIR" ))
 
-png("TE_orders_plot.png")
 #plotting data with zoom the last 0.25% of data 
-ggplot(data, aes(fill=reorders,y=Length, x=Ecotype)) + 
+ggplot(data, aes(fill=reorders,y=Length, x=Ecotype)) +
   geom_bar(position="fill", stat="identity") +
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))+
+  theme(axis.text.x=element_text(angle=90,size = rel(0.7),vjust =1))+ #change size and angle of x axis
   xlab("Ecotypes")+            # for the x axis label
-  ylab("length(bp)")+
-  facet_zoom(ylim = c(0.0, 0.025))
+  ylab("% total genome length")+
+  facet_zoom(ylim = c(0.0, 0.025))+ # zoom 0.25% bottom
+theme(legend.key.height= unit(0.1, 'cm'), #change size of legend.key
+        legend.key.width= unit(0.1, 'cm'))+
+  theme(legend.title = element_text(size=5))+theme(legend.text = element_text(size=5))+ # change size of tilte and text for legend squre
+theme (axis.title=element_text(size=7,face="bold"))
 
-dev.off()
+
+
+dev.off() #save a plot photo
+
