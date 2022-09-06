@@ -1,6 +1,5 @@
 #!usr/bin/env bash
 
-
 rm BrachyPan.file_list cookies
 
  #change the directory
