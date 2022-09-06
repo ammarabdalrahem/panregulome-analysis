@@ -1,12 +1,12 @@
 #!usr/bin/env bash
 
+#https://phytozome-next.jgi.doe.gov/brachypan
 
 #Identif the variables
-
 # add your username and password
 username=$1
 password=$2
-file=$3 #?
+file=$3 #file path wich contain the name of folder list
 #file="Bdistachyon_283_v2.1.gene.gff3.gz"
 organism="BrachyPan"
 
@@ -24,13 +24,15 @@ curl 'https://genome.jgi.doe.gov/portal/ext-api/downloads/get-directory?organism
 #Filter names
 data=$(grep $file $organism.file_list | cut -d ' ' -f 13 | cut -b 5- | sed "s/amp;//" | cut -c 3- | rev | cut -c2- |rev)
 	
-echo $data
+#echo $data
 
 #Get data
 
 
 curl  'https://genome.jgi.doe.gov/'$data -b cookies > $file
 
+#clean the data
+rm cookies 
 
 
 
