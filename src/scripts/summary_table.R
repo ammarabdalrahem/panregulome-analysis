@@ -1,3 +1,5 @@
+#summary for local ang golbal alighment ex:precetage of poor sequance
+
 #Code to install packages if necessary, and read them with library function
 required_packages <- c("stringr","ggplot2", "readr","reshape2","ggpubr","dplyr","tidyverse","dgof")
 for (package in required_packages) {
