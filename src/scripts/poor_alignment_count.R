@@ -18,7 +18,7 @@ occupancy_number <- read.table(file = "occupancy_number.csv",
                                header = F)
 #define cols names
 
-colnames(occupancy_number)<- c("cluster.name","occupancy_number")
+colnames(occupancy_number)<- c("cluster.name","occupancy")
 
 
 #remove all spaces from columns 
@@ -31,17 +31,17 @@ occupancy_number <-  as.data.frame(occupancy_number)
 
 
 # creat levels for x axis
-data_levels <- levels(as.factor(as.numeric(as.character(data$occupancy_number))))
+data_levels <- levels(as.factor(as.numeric(as.character(occupancy_number$occupancy))))
 
 #make order to x axis depend on levels orders
-data$occupancy_number <- factor(data$occupancy_number, levels=(data_levels)) 
+occupancy_number$occupancy <- factor(occupancy_number$occupancy, levels=(data_levels)) 
 
 #golbal analysis/promoter
 #number of total sequance per cluster
 total_seq_pr <- read.table(file = "total_seq_cluster_pr_.csv",
                            sep=",",
                            header = F)
-                           
+
 #number of poor alignment for promoter per cluster
 poor_number_pr <- read.table(file = "number_of_poor_alignment_pr.csv",
                              sep=",",
@@ -82,13 +82,13 @@ promoter_data[2:3] <- NULL
 #golbal analysis/CDS
 #number of total sequance per cluster
 total_seq_cds <- read.table(file = "total_seq_cluster_cds_.csv",
-                           sep=",",
-                           header = F)
-                           
+                            sep=",",
+                            header = F)
+
 #number of poor alignment for promoter per cluster
 poor_number_cds <- read.table(file = "number_of_poor_alignment_cds.csv",
-                             sep=",",
-                             header = F)
+                              sep=",",
+                              header = F)
 
 # define coloums headers
 colnames(total_seq_cds)<- c("cluster.name","total_number_cds")
@@ -137,15 +137,17 @@ poor_seq_ratio_glob <-  as.data.frame(poor_seq_ratio_glob)
 poor_seq_ratio_glob <- melt(poor_seq_ratio_glob, measure.vars = c("ratio_pr","ratio_cds"))
 
 # define coloums headers
-colnames(poor_seq_ratio_glob$value)<- c("ratio")
+colnames(poor_seq_ratio_glob)[4] <- "ratio"
 
-poor_seq_ratio_glob$value <- as.numeric(as.character(poor_seq_ratio_glob$ratio))
+#convert ratio value to numeric
+poor_seq_ratio_glob$ratio <- as.numeric(as.character(poor_seq_ratio_glob$ratio))
+
 #make order to x axis depend on levels orders
-poor_seq_ratio_glob$occupancy_number <- factor(poor_seq_ratio_glob$occupancy_number, levels=(data_levels)) 
+poor_seq_ratio_glob$occupancy<- factor(poor_seq_ratio_glob$occupancy, levels=(data_levels)) 
 
 
-
-ggplot(poor_seq_ratio_glob)+(aes(x=occupancy_number, y=ratio,color=variable,fill=variable)) + 
+#plotting data
+ggplot(poor_seq_ratio_glob)+(aes(x=occupancy, y=ratio,color=variable,fill=variable)) + 
   geom_boxplot() +
   theme(strip.text.x = element_text(size =15))+
   xlab("Occupancy")+ ylab("Percentage of poor sequance")+
@@ -153,7 +155,7 @@ ggplot(poor_seq_ratio_glob)+(aes(x=occupancy_number, y=ratio,color=variable,fill
   scale_fill_manual(name="",values = c("#fc1717", "#3422f5"),labels = c("Promoters", "CDS"))+
   scale_colour_manual(name="",values = c("#ff5e5e","#8d85ed"),labels = c("Promoters", "CDS"))+
   stat_compare_means(method="t.test",label ="p.signif")
-  
+
 
 #clean data
 remove(cds_data,promoter_data,poor_number_pr,poor_number_cds,occupancy_number,total_seq_pr,total_seq_cds)
