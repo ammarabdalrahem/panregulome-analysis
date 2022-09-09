@@ -12,13 +12,67 @@ for (package in required_packages) {
 #set your data directory
 setwd("C:/Users/ammar/Desktop/workR")
 
+# Load dataset
+nd_cds <- read.table(file = "nucleotide_diversity_cds.csv", 
+                     sep=",",
+                     header = F)                                 #load cds data
+
+colnames(nd_cds) <- c("cluster.name","piCDS")                    #create headers
+
+
+nd_pr <- read.table(file = "nucleotide_diversity_pr.csv",
+                     sep=",",
+                     header = F)                                 #load cds data
+
+colnames(nd_pr) <- c("cluster.name","piPromoter")                #create headers
+
+
+
+nd_all <- merge(nd_cds, nd_pr, by="cluster.name", all=TRUE) #merga two tables
+
+
+
+#cat pangenome_matrix_t0__shell_list.txt pangenome_matrix_t0__softcore_list.txt > pangenome.csv
+
+pangenome <- read.table(file = "pangenome.csv",
+                       sep=",",
+                       header = F) #load pangenome data
+
+
+#define cols names
+colnames(pangenome)<- c("cluster.name","pan")#create headers
+
+
+
+
+#remove all spaces from columns 
+nd_all <- apply(nd_all, 2, str_remove_all, " ") 
+pangenome <- apply(pangenome, 2, str_remove_all, " ") 
+
+#convert data to dataframe
+nd_all <-  as.data.frame(nd_all)
+pangenome <- as.data.frame(pangenome)
+
+# Merge data according to row names
+all <- merge(nd_all,pangenome, by ="cluster.name",all=TRUE)
+all <- as.data.frame(all)
+
+#remove all data contain NA
+all <- all[!is.na(all$piCDS), ]
+all <- all[!is.na(all$piPromoter), ]
+
+
+#load occupancy table 
+# cat BdistachyonABR2337v1_4taxa_algOMCL_e1_.cluster_list |
+# grep "taxa"|cut -d " " -f 4,6|perl -p -e 's/taxa=/,/'|
+# perl -lane 'print $F[1],$F[0]'> ../../../tables/occupancy_number.csv
 
 occupancy_number <- read.table(file = "occupancy_number.csv",
                                sep=",",
                                header = F)
 #define cols names
 
-colnames(occupancy_number)<- c("cluster.name","occupancy")
+colnames(occupancy_number)<- c("cluster.name","occupancy_number")
 
 
 #remove all spaces from columns 
@@ -30,132 +84,85 @@ occupancy_number <- apply(occupancy_number, 2, str_remove_all, " ")
 occupancy_number <-  as.data.frame(occupancy_number)
 
 
+
+
+
+
+# Merge data according to row names
+final <- merge(all,occupancy_number, by ="cluster.name",all=TRUE)
+final <- final[!is.na(final$piPromoter), ]
+
+
+final$piCDS <- as.numeric(as.character(final$piCDS))
+final$piPromoter <- as.numeric(as.character(final$piPromoter))
+
+
+
+#melt cds and promoters in one cone column 
+data <- melt(final, measure.vars = c("piCDS","piPromoter"))
+colnames(data)<- c("cluster.name","pangenome","occupancy_number","cds_promoter","Nucleotide_diversity")
+data <- data[!is.na(data$Nucleotide_diversity), ]
+
 # creat levels for x axis
-data_levels <- levels(as.factor(as.numeric(as.character(occupancy_number$occupancy))))
+data_levels <- levels(as.factor(as.numeric(as.character(data$occupancy_number))))
 
 #make order to x axis depend on levels orders
-occupancy_number$occupancy <- factor(occupancy_number$occupancy, levels=(data_levels)) 
+data$occupancy_number <- factor(data$occupancy_number, levels=(data_levels)) 
 
-#golbal analysis/promoter
-#number of total sequance per cluster
-total_seq_pr <- read.table(file = "total_seq_cluster_pr_.csv",
-                           sep=",",
-                           header = F)
-
-#number of poor alignment for promoter per cluster
-poor_number_pr <- read.table(file = "number_of_poor_alignment_pr.csv",
-                             sep=",",
-                             header = F)
-
-# define coloums headers
-colnames(total_seq_pr)<- c("cluster.name","total_number_pr")
-colnames(poor_number_pr)<- c("cluster.name","poor_number_pr")
+# customize the arrangement of pangenome order
+data$pangenome <- factor(data$pangenome, levels=c('shell','core'))
 
 
-#remove any space
-total_seq_pr <- apply(total_seq_pr, 2, str_remove_all, " ") 
-total_seq_pr <-  as.data.frame(total_seq_pr)
+#plot
+#ggsave(file="ahh.png", width=18, height=7, dpi=300)
 
-poor_number_pr <- apply(poor_number_pr, 2, str_remove_all, " ") 
-poor_number_pr <-  as.data.frame(poor_number_pr)
-
-#merge side by side by cluster.name
-promoter_data <- merge(total_seq_pr,poor_number_pr, by ="cluster.name",all=TRUE)
-
-#remove any space
-promoter_data <- apply(promoter_data, 2, str_remove_all, " ") 
-promoter_data <-  as.data.frame(promoter_data)
-
-
-
-#convert nuber data value as numeric for calculation
-promoter_data$total_number_pr <- as.numeric(as.character(promoter_data$total_number_pr))
-promoter_data$poor_number_pr <- as.numeric(as.character(promoter_data$poor_number_pr))
-
-#calculate the ratio: (poor number /total nuber )*100
-promoter_data$ratio_pr <- (promoter_data$poor_number_pr / promoter_data$total_number_pr)*100
-
-#remove total and poor number keep only ratio col.
-promoter_data[2:3] <- NULL   
-
-
-#golbal analysis/CDS
-#number of total sequance per cluster
-total_seq_cds <- read.table(file = "total_seq_cluster_cds_.csv",
-                            sep=",",
-                            header = F)
-
-#number of poor alignment for promoter per cluster
-poor_number_cds <- read.table(file = "number_of_poor_alignment_cds.csv",
-                              sep=",",
-                              header = F)
-
-# define coloums headers
-colnames(total_seq_cds)<- c("cluster.name","total_number_cds")
-colnames(poor_number_cds)<- c("cluster.name","poor_number_cds")
-
-
-#remove any space
-total_seq_cds <- apply(total_seq_cds, 2, str_remove_all, " ") 
-total_seq_cds <-  as.data.frame(total_seq_cds)
-
-poor_number_cds <- apply(poor_number_cds, 2, str_remove_all, " ") 
-poor_number_cds <-  as.data.frame(poor_number_cds)
-
-#merge side by side by cluster.name
-cds_data <- merge(total_seq_cds,poor_number_cds, by ="cluster.name",all=TRUE)
-
-#remove any space
-cds_data <- apply(cds_data, 2, str_remove_all, " ") 
-cds_data <-  as.data.frame(cds_data)
-
-
-
-#convert nuber data value as numeric for calculation
-cds_data$total_number_cds <- as.numeric(as.character(cds_data$total_number_cds))
-cds_data$poor_number_cds <- as.numeric(as.character(cds_data$poor_number_cds))
-
-#calculate the ratio: (poor number /total nuber )*100
-cds_data$ratio_cds <- (cds_data$poor_number_cds / cds_data$total_number_cds)*100
-
-#remove total and poor number keep only ratio col.
-cds_data[2:3] <- NULL  
-
-
-
-#merge all data for promoter and CDS
-poor_seq_ratio_glob <- merge(promoter_data,cds_data, by ="cluster.name",all=TRUE)
-
-#merge all data with occupancy number
-
-poor_seq_ratio_glob <- merge(poor_seq_ratio_glob,occupancy_number, by ="cluster.name",all=TRUE)
-#remove any space
-poor_seq_ratio_glob <- apply(poor_seq_ratio_glob, 2, str_remove_all, " ") 
-poor_seq_ratio_glob <-  as.data.frame(poor_seq_ratio_glob)
-
-#melt all
-poor_seq_ratio_glob <- melt(poor_seq_ratio_glob, measure.vars = c("ratio_pr","ratio_cds"))
-
-# define coloums headers
-colnames(poor_seq_ratio_glob)[4] <- "ratio"
-
-#convert ratio value to numeric
-poor_seq_ratio_glob$ratio <- as.numeric(as.character(poor_seq_ratio_glob$ratio))
-
-#make order to x axis depend on levels orders
-poor_seq_ratio_glob$occupancy<- factor(poor_seq_ratio_glob$occupancy, levels=(data_levels)) 
-
-
-#plotting data
-ggplot(poor_seq_ratio_glob)+(aes(x=occupancy, y=ratio,color=variable,fill=variable)) + 
-  geom_boxplot() +
+ggplot(data)+(aes(x=occupancy_number, y=Nucleotide_diversity,color=cds_promoter,fill=cds_promoter)) + 
+  geom_boxplot() + facet_grid(.~pangenome, scale="free", space="free")+geom_boxplot() +
   theme(strip.text.x = element_text(size =15))+
-  xlab("Occupancy")+ ylab("Percentage of poor sequance")+
-  theme(strip.text.x = element_text(size =15))+
-  scale_fill_manual(name="",values = c("#fc1717", "#3422f5"),labels = c("Promoters", "CDS"))+
-  scale_colour_manual(name="",values = c("#ff5e5e","#8d85ed"),labels = c("Promoters", "CDS"))+
+  scale_fill_manual(name="",values = c("#fc1717", "#3422f5"),labels = c("CDS", "Promoters"))+
+  scale_colour_manual(name="",values = c("#ff5e5e","#8d85ed"),labels = c("CDS", "Promoters"))+
+  xlab("Occupancy")+ ylab("Nucleotide diversity")+
+  theme(axis.title=element_text(size=15))+
+  theme(legend.text = element_text(size=15))+
   stat_compare_means(method="t.test",label ="p.signif")
+#dev.off()
 
 
-#clean data
-remove(cds_data,promoter_data,poor_number_pr,poor_number_cds,occupancy_number,total_seq_pr,total_seq_cds)
+#creat summary table 
+data_summary <- final %>%  #for this table 
+  group_by(occupancy_number, pan) %>%  #make a group by this variable (tidyverse package)
+  summarise(Number = n(), MeanCDS = mean(piCDS), MeanPromoters = mean(piPromoter),medianCDS= median(piCDS),medianPromoters= median(piPromoter)) # create with summaries col you want
+
+#order the data
+data_summary$occupancy_number <- factor(data_summary$occupancy_number, levels=(data_levels)) 
+
+#save the summary table 
+write.csv(data_summary, "data_summary.csv", row.names = F)
+
+
+
+#create table per occupancy number 
+table_4 <- data[data$occupancy_number ==4,]
+
+table_54 <- data[data$occupancy_number == 54,]
+
+for (num in seq(4, 54, 1)) {
+  table_name <- paste("table", num, sep ="_")
+  table_temp <- data[data$Occupancy_number == num,]
+  assign(table_name, table_temp)
+  plot <- table_temp %>% ggplot( aes(x=Nucleotide_diversity,fill= cds_promoter)) +
+    geom_density(alpha=0.6)
+  plot_name <- file.path(getwd(), paste(table_name, ".png", sep=""))
+  ggsave(plot_name, plot ,width=18, height=7, dpi=300, device = "png")
+  rm(table_temp)
+}
+
+
+
+#histogram to see distribution of this tables 
+table_4 %>% ggplot( aes(x=Nucleotide_diversity,fill= cds_promoter)) +
+      geom_density(alpha=0.6)
+
+
+table_54 %>% ggplot( aes(x=Nucleotide_diversity,fill= cds_promoter)) +
+  geom_density(alpha=0.6)
