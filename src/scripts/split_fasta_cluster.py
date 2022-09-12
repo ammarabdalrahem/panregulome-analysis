@@ -39,10 +39,12 @@ for i in range (len(headers_list)):
 	tempfilename= output_dr + tmpfilename
 	tmpids.append(tempfilename)
 
-print (tmpids)
 
+for i in range(len(headers_list)):# calculate the identity percent	
+	for k in seqs:
+		print(k,"\n",seqs[k],file=open(tmpids[i] , "a"))
 
-
+"""
 for seqi in range(len(headers_list)):# calculate the identity percent
 	for seqj in range(seqi+1,len(headers_list)): # to compare all possibilities
 		print (seqi,"temporary",input_file,sep='')
