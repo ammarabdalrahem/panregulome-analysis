@@ -129,3 +129,19 @@ ggplot(mash_data)+(aes(x=occupancy_number, y=mash_distance,color=cds_promoter,fi
   theme(legend.text = element_text(size=15))+
   stat_compare_means(method="t.test",label ="p.signif")
 #dev.off()
+
+
+
+
+
+
+#creat summary table 
+data_summary <- final_mash %>%  #for this table 
+  group_by(occupancy_number, pan) %>%  #make a group by this variable (tidyverse package)
+  summarise(Number = n(),medianCDS= median(mash_cds),medianPromoters= median(mash_pr)) # create with summaries col you want
+
+#order the data
+data_summary$occupancy_number <- factor(data_summary$occupancy_number, levels=(data_levels)) 
+
+#save the summary table 
+write.csv(data_summary, "data_summary_mash.csv", row.names = F)
