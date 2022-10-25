@@ -1,6 +1,4 @@
 # panregulome-analysis
-Exploring the panregulome of grasses with model species Brachypodium distachyon
-
 a Snakemake workflow for exploring the panregulome of grasses with model species Brachypodium distachyon
 
 ## The analysis includes:
