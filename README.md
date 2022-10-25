@@ -21,11 +21,6 @@ a Snakemake workflow for exploring the panregulome of grasses with model species
 
 8- Mash distance estimation
 
-## Inputs
-Scripts
-list of name assemblies 
-
-
 ## Installation
 
 ### From GitHub
@@ -36,6 +31,9 @@ git clone https://github.com/ammarabdalrahem/panregulome-analysis.git
 ```
 pip3 install snakemake
 ```
+## Note
+input your username and password in SnakeFile to login JGI
+
 ## Usage
 ```
 cd panregulome-analysis
