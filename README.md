@@ -17,3 +17,20 @@ a Snakemake workflow for exploring the panregulome of grasses with model species
 ## Inputs
 Scripts
 list of name assemblies 
+
+
+## Installation
+
+### From GitHub
+```
+git clone https://github.com/ammarabdalrahem/panregulome-analysis.git
+```
+## Installing Snakemake 
+```
+pip3 install snakemake
+```
+## Usage
+```
+cd panregulome-analysis
+snakemake --cores all
+```
