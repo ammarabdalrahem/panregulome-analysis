@@ -25,25 +25,25 @@ rule make_directories:
         """
 
 
-
 # --- Obtain genome sequences --- #
-username = "login=mohamedabdelfadeel1994@gmail.com"
-password = "password=Rido@1994"
-
+username = "login=ammar.abdalrahem@outlook.com"
+password = "password=ammar1994"
 
 rule obtain_data:
   input:
-    script = "src/scripts/data_retrieve.sh",
+    script = "src/scripts/data_retrieve_JGI_Genome_Portal.sh",
     ecotypes = "src/files_list.txt"
 
   output:
     data = directory("out/data/")
   shell:
     """
+     mkdir -p out/data
     cd {output.data}
 
     while read file; do bash ../../{input.script} {username} {password} $file; done < ../../{input.ecotypes}
     """
+    
 rule uncompressed_files: 
   input:
     data = "out/data/"
