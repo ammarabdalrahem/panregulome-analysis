@@ -14,8 +14,11 @@ for i in lst:
 rule all:
     input:
         header_extraction_out = expand(["out/uncom_data/cds/clusters_cds_ids/{file}"], file = fna_files),
-        promoter_out = ["out/uncom_data/promoter_cluster/"],
+	      promoter_out = ["out/uncom_data/promoter_cluster/"],
+        coding_sequance_align = expand(["out/aln_cds/{file}"], file = fna_files),
+        promoter_sequance_align = expand(["out/aln_promoter/{file}"], file = fna_files)
 
+		
 
 # --- Create directories --- #
 rule make_directories:
@@ -24,26 +27,24 @@ rule make_directories:
         mkdir -p  tables out figures
         """
 
-
 # --- Obtain genome sequences --- #
-username = "login=ammar.abdalrahem@outlook.com"
-password = "password=ammar1994"
+username = "login=mohamedabdelfadeel1994@gmail.com"
+password = "password=Rido@1994"
+# Make sure your account has permission to download data
 
 rule obtain_data:
   input:
-    script = "src/scripts/data_retrieve_JGI_Genome_Portal.sh",
+    script = "src/scripts/data_retrieve.sh",
     ecotypes = "src/files_list.txt"
-
+  
   output:
     data = directory("out/data/")
   shell:
     """
-     mkdir -p out/data
     cd {output.data}
-
+    
     while read file; do bash ../../{input.script} {username} {password} $file; done < ../../{input.ecotypes}
     """
-    
 rule uncompressed_files: 
   input:
     data = "out/data/"
@@ -51,15 +52,19 @@ rule uncompressed_files:
     uncompressed_data = directory("out/uncom_data/")
   shell:
     """
-    for file in $(ls {input.data}/*gz  |rev|cut -d "." -f 2- |rev); do gunzip -k {input.data}/$file.gz ; mv {input.data}/$file {output.uncompressed_data} ; done
+    for file in $(ls {input.data}*gz  |rev|cut -d "." -f 2- |rev|cut -d "/" -f 3-); do gunzip -k {input.data}$file.gz ; mv {input.data}$file {output.uncompressed_data} ; done
     cd out/uncom_data/
     mv BdistachyonBd21v2_1_283_v2.0.fa BdistachyonBd21v2_283_v2.fa
     mv BdistachyonBd21v2_1_283_Bd21v2.1.gene.gff3 BdistachyonBd21v2_283_v2.Bd21.1.gene.gff3
     mv BdistachyonBd21v2_1_283_Bd21v2.1.cds_primaryTranscriptOnly.fa BdistachyonBd21v2_283_v2.Bd21.1.cds_primaryTranscriptOnly.fa
     for f in *Only.fa ; do fnew=`echo $f|cut --complement -d '.' -f 2,3`; mv $f $fnew ; done 
     for f in *.gff3 ; do fnew=`echo $f|cut --complement -d '.' -f 2-4`; mv $f $fnew ; done
+    mkdir genomes
+    mkdir cds
+    mv ./*Only.fa cds/
+    mv ./*.*  genomes/
     """
-    
+
 # --- Quality control of the assemblies --- #
 
 rule assembly_assessment:
@@ -86,8 +91,9 @@ rule assembly_assessment:
     #join two tables
     paste -d , stats_table.csv genes_table.csv|perl -l -F/ -e 'print "$F[3]"'  > {output.asses_table}
     #clear data
-    rm genes_table.csv genes.csv stats_table.csv stats.csv
+    mv genes_table.csv genes.csv stats_table.csv stats.csv tables/
     """
+
 rule BUSCO_run:
   input:
     data= "out/uncom_data/"
@@ -107,10 +113,9 @@ rule BUSCO_run:
     do
         NAME_base=$(basename $i)
         echo "$NAME_base"
-        busco -o ${{NAME_base}} -i $i -l poales -m genome --out_path {output.BUSCO_run} -c 16 -f 
-    done && mv *.log  {output.BUSCO_log} && mv -r busco_downloads {output.BUSCO_run}
+        busco -o ${{NAME_base}} -i $i -l poales -m genome --out_path {output.BUSCO_run} -c 20 -f 
+    done 
     """
-
 
 rule quality_table:
   input:
@@ -123,22 +128,22 @@ rule quality_table:
   shell:
     """
     # extract the busco score of completeness and create a column
-    ls -1  {input.data}*_{{v1.fa,v2.fa}}/short_summary.*|sort -u|
+    ls -1  {input.data}*_{{v1.fa,v2.fa}}/short_summary.*|sort -u| 
     while read i
     do
     cat $i |sed -n '3p'| rev |cut -d "/" -f 1|rev|tr -s " " && cat $i|
     perl -ne 'if(/C:([^\[]+)/){{ print $1; }}'|
-    awk '{{print $0","}}'
+    awk '{{print $0","}}' 
     done |paste -sd "\t\n"|sort -u| awk '{{print $2}}'|sed 's/.$//' |sed 's/.$//'> tables/busco_table.csv
-    #create a table for busco column and stats result
+    #create a table for busco column and stats result 
     paste -d , {input.asses_table} tables/busco_table.csv > tables/final_table.csv
     #creat headers
     sed -i -e '1i Name,total_length,Ns_count,Gaps,N_genes,BUSCO_complete %' tables/final_table.csv
-    #clear row names
-    cat tables/final_table.csv | awk '{{gsub(/Bdistachyon/,"",$1)}}1' | awk '{{gsub(/_v1.fa/,"",$1)}}1'|
+    #clear row names 
+    cat tables/final_table.csv | awk '{{gsub(/Bdistachyon/,"",$1)}}1' | awk '{{gsub(/_v1.fa/,"",$1)}}1'| 
     awk '{{gsub(/_v2.fa/,"",$1)}}1'> {output.quality_table}
     rm tables/busco_table.csv tables/final_table.csv
-
+    
     """
 
 rule assemblies_evaluation:
@@ -148,7 +153,7 @@ rule assemblies_evaluation:
 
   output:
     q_boxplot = "figures/quality_box.eps"
-
+  
   shell:
     "Rscript {input.script}"
 
@@ -176,7 +181,6 @@ rule excluded_poor_quality:
     for file in $(echo $(<out/txt/poor_quality.txt) ); do mv out/uncom_data/genomes/$file {output.excluded_dir}; done
     rm r_output.txt
     """
-
 
 
 # --- Repeat masking --- #
@@ -208,6 +212,7 @@ rule repeat_masking_annotation:
     make install install_repeats
     cd repeats
 
+
     # run repeat masking and annotation tools for all fasta files
     ls -1 ../../../../../out/uncom_data/genomes/*.fa| # move to work directory that contain fasta format
         sort -u | #sort all files by alphabetical arrangement
@@ -229,26 +234,26 @@ rule repeats_length:
 
   output:
     repeats_table = "tables/repeats_analysis.csv"
-
+  
   shell:
     """
     #count total length of repeats for each ecotypes
-    ls -1 {input.data}*.fa.bed |
+    ls -1 {input.data}*.fa.bed | 
         sort -u |
         while read i
         do
-            cat $i |awk '{{SUM += $3-$2}} END {{print SUM}}' # by subtracting two columns of coordinates for length the summation all fo>
+            cat $i |awk '{{SUM += $3-$2}} END {{print SUM}}' # by subtracting two columns of coordinates for length the summation all for total length
                 done | tr "\\t" ","  > repeats_length.csv
     cat repeats_length.csv
     #count the total length of genome for each ecotypes
-    assembly-stats -u out/uncom_data/genomes/Bdistachyon*.fa|cut -f 1-2|tr "\\t" ","|awk '{{gsub(/Bdistachyon/,"",$1)}}1' | awk '{{gsub(>
+    assembly-stats -u out/uncom_data/genomes/Bdistachyon*.fa|cut -f 1-2|tr "\\t" ","|awk '{{gsub(/Bdistachyon/,"",$1)}}1' | awk '{{gsub(/_v1.fa/,"",$1)}}1'|cut -d "/" -f 4 > stats_40.csv
     # join genome total length and total length of repeats in CSV file
-    paste -d , stats_40.csv repeats_length.csv > tables/repeats_analysis.csv
-    #add head
+    paste -d , stats_40.csv repeats_length.csv > tables/repeats_analysis.csv 
+    #add head 
     sed -i '1i Ecotypes,Genome.size,Repeated' tables/repeats_analysis.csv
     #clean data
     rm stats_40.csv repeats_length.csv
-    """
+    """ 
 
 rule repeats_visualization:
     input:
@@ -266,7 +271,7 @@ rule annotation_analysis:
     script = "src/scripts/te_ann.sh"
   output:
     data = "tables/te_ann.csv"
-
+  
   shell:
     """
     #go to bed files directory
@@ -328,7 +333,7 @@ rule promoters_extraction:
     script = "src/scripts/promoters_extraction.sh"
   output:
     data_pr = directory ("out/uncom_data/promoter/")
-
+  
   shell:
     "bash {input.script}"
 
@@ -349,7 +354,7 @@ rule get_homologues:
     cd ../../..
     {output.get_homologues} -h
     """
-
+    
 rule gene_clustering:
   input:
     script_get_homologues = "src/scripts/get_homologues/get_homologues-est.pl"
@@ -388,6 +393,18 @@ rule promoter_clustering:
     {input.script_seq_extraction} -id {input.cds_ids} -f {input.promoter_dir} -o {output.promoter_cluster}
     """
 
+rule global_alignment:
+  input:
+    data_homologues = "out/cds_est_homologues/BdistachyonABR2337v1_4taxa_algOMCL_e1_/{file}",
+  output:
+    cds_align = "out/aln_cds/{file}",
+    promoter_align = "out/aln_promoter/{file}"
 
+  shell: 
+    """
+    #cds
+    mafft --globalpair --maxiterate 1000 {input.data_homologues} > out/aln_cds/{wildcards.file}  2> out/logs/aln_cds_log.txt  
 
-
+    #promoter
+    mafft --globalpair --maxiterate 1000 out/uncom_data/promoter_cluster/{wildcards.file} > out/aln_promoter/{wildcards.file} 2> out/logs/aln_pr_log.txt
+    """
