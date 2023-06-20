@@ -16,9 +16,13 @@ rule all:
         header_extraction_out = expand(["out/uncom_data/cds/clusters_cds_ids/{file}"], file = fna_files),
 	      promoter_out = ["out/uncom_data/promoter_cluster/"],
         coding_sequance_align = expand(["out/aln_cds/{file}"], file = fna_files),
-        promoter_sequance_align = expand(["out/aln_promoter/{file}"], file = fna_files)
+        promoter_sequance_align = expand(["out/aln_promoter/{file}"], file = fna_files),
+        cds_global_align_filtration = expand(["out/aln_cds/aln_cds_filtered/{file}"], file = fna_files),
+        promoter_global_align_filtration = expand(["out/aln_promoter/aln_promoter_filtered/{file}"], file = fna_files),
+        coding_sequance_local_align = expand(["out/aln_local_cds/{file}"], file = fna_files),
+        promoter_sequance_local_align = expand(["out/aln_local_pr/{file}"], file = fna_files)
 
-		
+
 
 # --- Create directories --- #
 rule make_directories:
@@ -395,7 +399,7 @@ rule promoter_clustering:
 
 rule global_alignment:
   input:
-    data_homologues = "out/cds_est_homologues/BdistachyonABR2337v1_4taxa_algOMCL_e1_/{file}",
+    data_homologues = "out/cds_est_homologues/BdistachyonABR2337v1_4taxa_algOMCL_e1_/{file}", 
   output:
     cds_align = "out/aln_cds/{file}",
     promoter_align = "out/aln_promoter/{file}"
@@ -407,4 +411,39 @@ rule global_alignment:
 
     #promoter
     mafft --globalpair --maxiterate 1000 out/uncom_data/promoter_cluster/{wildcards.file} > out/aln_promoter/{wildcards.file} 2> out/logs/aln_pr_log.txt
+    """
+
+rule global_align_filtration:
+  input:
+    cds_align = "out/aln_cds/{file}",
+    promoter_align = "out/aln_promoter/{file}"
+  output:
+    cds_align_filtration = "out/aln_cds/aln_cds_filtered/{file}",
+    promoter_align_filtration = "out/aln_promoter/aln_promoter_filtered/{file}"
+
+  shell: 
+    """
+    #cds
+    ./src/scripts/filter_global_alignment.py -f {input.cds_align} -o {output.cds_align_filtration} >> tables/global_poor_alignment_cds.csv
+    #promoter
+    ./src/scripts/filter_global_alignment.py  -f {input.promoter_align} -o {output.promoter_align_filtration} >> tables/global_poor_alignment_pr.csv
+    """
+
+    
+rule local_alignment:
+  input:
+    data_homologues = "out/cds_est_homologues/BdistachyonABR2337v1_4taxa_algOMCL_e1_/{file}",
+    promoter_cluster = "out/uncom_data/promoter_cluster/{file}"
+  output:
+    cds_local_align = "out/aln_local_cds/{file}",
+    promoter_local_align = "out/aln_local_pr/{file}"
+
+  shell: 
+    """
+    #cds
+    ./src/scripts/get_homologues/annotate_cluster.pl -f {input.data_homologues} -o  {output.cds_local_align} 2>  out/logs/aln_local_cds_log.txt
+
+    #promoter
+    ./src/scripts/get_homologues/annotate_cluster.pl -f {input.promoter_cluster} -o {output.promoter_local_align} 2>  out/logs/aln_local_pr_log.txt
+
     """
