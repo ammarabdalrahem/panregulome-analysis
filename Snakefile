@@ -17,10 +17,14 @@ rule all:
 	      promoter_out = ["out/uncom_data/promoter_cluster/"],
         coding_sequance_align = expand(["out/aln_cds/{file}"], file = fna_files),
         promoter_sequance_align = expand(["out/aln_promoter/{file}"], file = fna_files),
-        cds_global_align_filtration = expand(["out/aln_cds/aln_cds_filtered/{file}"], file = fna_files),
+        cds_global_align_filtration =  expand(["out/aln_cds/aln_cds_filtered/{file}"], file = fna_files),
         promoter_global_align_filtration = expand(["out/aln_promoter/aln_promoter_filtered/{file}"], file = fna_files),
         coding_sequance_local_align = expand(["out/aln_local_cds/{file}"], file = fna_files),
-        promoter_sequance_local_align = expand(["out/aln_local_pr/{file}"], file = fna_files)
+        promoter_sequance_local_align = expand(["out/aln_local_pr/{file}"], file = fna_files),
+        trimal_cds_local_align = expand(["out/aln_local_cds/aln_local_cds_trimal/{file}"], file = fna_files),
+        trimal_pr_local_align = expand(["out/aln_local_pr/aln_local_promoter_trimal/{file}"], file = fna_files),
+        trimal_cds_global_align = expand(["out/aln_cds/aln_cds_trimal/{file}"], file = fna_files),
+        trimal_pr_global_align = expand(["out/aln_promoter/aln_promoter_trimal/{file}"], file = fna_files)
 
 
 
@@ -421,13 +425,21 @@ rule global_align_filtration:
     cds_align_filtration = "out/aln_cds/aln_cds_filtered/{file}",
     promoter_align_filtration = "out/aln_promoter/aln_promoter_filtered/{file}"
 
+  params:
+    filter_path = "./src/scripts/filter_global_alignment.py"
+   
+
   shell: 
     """
     #cds
-    ./src/scripts/filter_global_alignment.py -f {input.cds_align} -o {output.cds_align_filtration} >> tables/global_poor_alignment_cds.csv
+    {params.filter_path} -f {input.cds_align} -o {output.cds_align_filtration}/{wildcards.file}  >> tables/global_poor_alignment_cds.csv || true
     #promoter
-    ./src/scripts/filter_global_alignment.py  -f {input.promoter_align} -o {output.promoter_align_filtration} >> tables/global_poor_alignment_pr.csv
+    {params.filter_path} -f {input.promoter_align} -o {output.promoter_align_filtration}/{wildcards.file}  >> tables/global_poor_alignment_pr.csv || true
     """
+
+
+
+
 
     
 rule local_alignment:
@@ -441,9 +453,49 @@ rule local_alignment:
   shell: 
     """
     #cds
-    ./src/scripts/get_homologues/annotate_cluster.pl -f {input.data_homologues} -o  {output.cds_local_align} 2>  out/logs/aln_local_cds_log.txt
+    ./src/scripts/get_homologues/annotate_cluster.pl -f {input.data_homologues} -o  {output.cds_local_align} >>  out/logs/aln_local_cds_log.txt 
+    #promoter
 
     #promoter
-    ./src/scripts/get_homologues/annotate_cluster.pl -f {input.promoter_cluster} -o {output.promoter_local_align} 2>  out/logs/aln_local_pr_log.txt
+    ./src/scripts/get_homologues/annotate_cluster.pl -f {input.promoter_cluster} -o {output.promoter_local_align} >>  out/logs/aln_local_pr_log.txt 
+    #promoter
 
     """
+
+rule trimal_alignment:
+  input:
+    cds_local_align = "out/aln_local_cds/{file}",
+    promoter_local_align = "out/aln_local_pr/{file}",
+    cds_align_filtration = "out/aln_cds/aln_cds_filtered/{file}",
+    promoter_align_filtration = "out/aln_promoter/aln_promoter_filtered/{file}"
+  output:
+    trimal_cds_local_align = "out/aln_local_cds/aln_local_cds_trimal/{file}",
+    trimal_pr_local_align = "out/aln_local_pr/aln_local_promoter_trimal/{file}",
+    trimal_cds_global_align = "out/aln_cds/aln_cds_trimal/{file}",
+    trimal_pr_global_align = "out/aln_promoter/aln_promoter_trimal/{file}"
+  params:
+    trimal_path = "~contrera/soft/trimal1.2/source/trimal"
+  shell: 
+    """
+    #trimal version trimAl 1.2rev59
+        
+    #cds_global_filterated
+    {params.trimal_path} -in {input.cds_align_filtration} -out {output.trimal_cds_global_align} \
+    -automated1 >> out/logs/trimal_cds_log.txt 
+
+
+    #promoter_global_filterated
+    {params.trimal_path} -in {input.promoter_align_filtration} -out {output.trimal_pr_global_align} \
+    -automated1 >> out/logs/trimal_pr_log.txt 
+
+    #cds_local
+    {params.trimal_path} -in {input.cds_local_align} -out {output.trimal_cds_local_align} \
+    -automated1 >> out/logs/trimal_cds_local_log.txt 
+
+
+    #promoter_local
+    {params.trimal_path} -in {input.promoter_local_align} -out {output.trimal_pr_local_align} \
+    -automated1 >> out/logs/trimal_pr_local_log.txt 
+
+    """
+
