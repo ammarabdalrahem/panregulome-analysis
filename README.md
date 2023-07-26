@@ -30,13 +30,13 @@ input your username and password in SnakeFile to login JGI
 snakemake --cores all
 ```
 ## WORKFLOW
-Rule: all
+Rule: all <br />
 The main rule that generates all the output files.
 
-Rule: make_directories
+Rule: make_directories<br />
 Creates the necessary output directories.
 
-Rule: obtain_data
+Rule: obtain_data<br />
 Downloads genome sequence data using the provided script and file list.
 
 Rule: uncompressed_files
