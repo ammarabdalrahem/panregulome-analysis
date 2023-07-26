@@ -30,7 +30,7 @@ input your username and password in SnakeFile to login JGI
 snakemake --cores all
 ```
 ## WORKFLOW
-Rule: all <br />
+#### Rule: all <br />
 The main rule that generates all the output files.
 
 Rule: make_directories<br />
