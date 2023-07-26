@@ -3,16 +3,13 @@ a Snakemake workflow for exploring the panregulome of grasses with model species
 
 
 ## REQUIREMENTS
-Snakemake
-assembly-stats
-BUSCO
-R
-get_homologues
-mafft
-USAGE
-To run this workflow, make sure you have all the required tools installed and the input files available. Then, create a Snakefile and copy the contents of the workflow into it. Adjust the paths and parameters as necessary and run Snakemake.
+Snakemake 
+assembly-stats 
+BUSCO 
+R 
+get_homologues 
+mafft 
 
-snakemake --cores <num_cores>
 
 
 ## Installation
