@@ -3,12 +3,12 @@ a Snakemake workflow for exploring the panregulome of grasses with model species
 
 
 ## REQUIREMENTS
-Snakemake 
-assembly-stats 
-BUSCO 
-R 
-get_homologues 
-mafft 
+Snakemake <br />
+assembly-stats <br />
+BUSCO <br />
+R <br />
+get_homologues <br />
+mafft <br />
 
 
 
