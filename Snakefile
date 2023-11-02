@@ -499,3 +499,32 @@ rule trimal_alignment:
 
     """
 
+
+rule nucleotide_diversity:
+  input:
+    trimal_cds_local_align = "out/aln_local_cds/aln_local_cds_trimal",
+    trimal_pr_local_align = "out/aln_local_pr/aln_local_promoter_trimal",
+    trimal_cds_global_align = "out/aln_cds/aln_cds_trimal",
+    trimal_pr_global_align = "out/aln_promoter/aln_promoter_trimal"
+  output:
+    diversity_cds_global = "tables/diversity_cds_global.csv",
+    diversity_pr_global = "tables/diversity_pr_global.csv",
+    diversity_cds_local = "tables/diversity_cds_local.csv",
+    diversity_pr_local = "tables/diversity_pr_local.csv"
+  params:
+    diversity_path = "src/scripts/nucleotide_diversity.py",
+    threads = 20
+  shell: 
+    """
+    echo "Computing nucleotide diversity for cds_global_trimal..." 
+    parallel -j {params.threads} 'python {params.diversity_path} -f {{}} -o {output.diversity_cds_global}' ::: {input.trimal_cds_global_align}/*.fna
+
+    echo "Computing nucleotide diversity for promoter_global_trimal..."
+    parallel -j {params.threads} 'python {params.diversity_path} -f {{}} -o {output.diversity_pr_global}' ::: {input.trimal_pr_global_align}/*.fna
+
+    echo "Computing nucleotide diversity for cds_local_trimal..." 
+    parallel -j {params.threads} 'python {params.diversity_path} -f {{}} -o {output.diversity_cds_local}' ::: {input.trimal_cds_local_align}/*.fna
+    
+    echo "Computing nucleotide diversity for promoter_local_trimal..." 
+    parallel -j {params.threads} 'python {params.diversity_path} -f {{}} -o {output.diversity_pr_local}' ::: {input.trimal_pr_local_align}/*.fna
+    """
