@@ -1,39 +1,43 @@
 ## Snakemake - panregulome-analysis
 ##
 ## @AbdalrahemAmmar
-from glob import glob
-lst = glob("out/cds_est_homologues/BdistachyonABR2337v1_4taxa_algOMCL_e1_/*.fna", recursive = False)
-fna_files = []
-for i in lst:
-    new_name = i.split("/")[-1]
-    fna_files.append(new_name)
-    #print(new_name)
+#from glob import glob
+#lst = glob("out/cds_est_homologues/BdistachyonABR2337v1_4taxa_algOMCL_e1_/*.fna", recursive = False)
+#fna_files = []
+#for i in lst:
+#    new_name = i.split("/")[-1]
+#    fna_files.append(new_name)
+#    #print(new_name)
 
 ##------------rule all ----------##
 
-rule all:
-    input:
-        header_extraction_out = expand(["out/uncom_data/cds/clusters_cds_ids/{file}"], file = fna_files),
-	      promoter_out = ["out/uncom_data/promoter_cluster/"],
-        coding_sequance_align = expand(["out/aln_cds/{file}"], file = fna_files),
-        promoter_sequance_align = expand(["out/aln_promoter/{file}"], file = fna_files),
-        cds_global_align_filtration =  expand(["out/aln_cds/aln_cds_filtered/{file}"], file = fna_files),
-        promoter_global_align_filtration = expand(["out/aln_promoter/aln_promoter_filtered/{file}"], file = fna_files),
-        coding_sequance_local_align = expand(["out/aln_local_cds/{file}"], file = fna_files),
-        promoter_sequance_local_align = expand(["out/aln_local_pr/{file}"], file = fna_files),
-        trimal_cds_local_align = expand(["out/aln_local_cds/aln_local_cds_trimal/{file}"], file = fna_files),
-        trimal_pr_local_align = expand(["out/aln_local_pr/aln_local_promoter_trimal/{file}"], file = fna_files),
-        trimal_cds_global_align = expand(["out/aln_cds/aln_cds_trimal/{file}"], file = fna_files),
-        trimal_pr_global_align = expand(["out/aln_promoter/aln_promoter_trimal/{file}"], file = fna_files)
+#rule all:
+#    input:
+#        header_extraction_out = expand(["out/uncom_data/cds/clusters_cds_ids/{file}"], file = fna_files),
+#	      promoter_out = ["out/uncom_data/promoter_cluster/"],
+#        coding_sequance_align = expand(["out/aln_cds/{file}"], file = fna_files),
+#        promoter_sequance_align = expand(["out/aln_promoter/{file}"], file = fna_files),
+#        cds_global_align_filtration =  expand(["out/aln_cds/aln_cds_filtered/{file}"], file = fna_files),
+#        promoter_global_align_filtration = expand(["out/aln_promoter/aln_promoter_filtered/{file}"], file = fna_files),
+#        coding_sequance_local_align = expand(["out/aln_local_cds/{file}"], file = fna_files),
+#        promoter_sequance_local_align = expand(["out/aln_local_pr/{file}"], file = fna_files),
+#        trimal_cds_local_align = expand(["out/aln_local_cds/aln_local_cds_trimal/{file}"], file = fna_files),
+#        trimal_pr_local_align = expand(["out/aln_local_pr/aln_local_promoter_trimal/{file}"], file = fna_files),
+#        trimal_cds_global_align = expand(["out/aln_cds/aln_cds_trimal/{file}"], file = fna_files),
+#        trimal_pr_global_align = expand(["out/aln_promoter/aln_promoter_trimal/{file}"], file = fna_files),
+#        diversity_cds_global = "out/diversity_cds_global/{file}.txt",
+#        diversity_pr_global = "out/diversity_pr_global/{file}.txt",
+#        diversity_cds_local = "out/diversity_cds_local/{file}.txt",
+#        diversity_pr_local = "out/diversity_pr_local/{file}.txt"
 
 
 
 # --- Create directories --- #
 rule make_directories:
-    shell:
-        """
-        mkdir -p  tables out figures
-        """
+  shell:
+    """
+    mkdir -p  tables out figures
+    """
 
 # --- Obtain genome sequences --- #
 username = "login=mohamedabdelfadeel1994@gmail.com"
@@ -376,6 +380,30 @@ rule gene_clustering:
     rm -r cds_est_homologues/
     """
 
+rule pangenome_analysis:
+  input:
+    script_get_homologues_cluster = "./src/scripts/get_homologues/compare_clusters.pl" #i should add -t 4 to avoide cloude
+  output:
+    get_homologues_cluster_log = "out/logs/log.compare_clusters.cds",
+    clusters_cds = directory("out/clusters_cds/")
+
+  shell:
+    """
+    {input.script_get_homologues_cluster} -d out/cds_est_homologues/BdistachyonABR2337v1_4taxa_algOMCL_e1_/ \
+    -o out/clusters_cds -t 4 -m -n &> {output.get_homologues_cluster_log}
+    """
+
+rule pangenome_plot:
+  input:
+    script_get_homologues_plot = "./src/scripts/get_homologues/parse_pangenome_matrix.pl",
+    pangenome_matrix = "out/clusters_cds/pangenome_matrix_t4.tab"
+  output:
+    get_homologues_plot_log = "out/logs/log.parse_pangenome_matrix.cds.t4"
+
+  shell:
+    """
+    {input.script_get_homologues_plot} -m  {input.pangenome_matrix} -s -n &> {output.get_homologues_plot_log}
+    """
 
 rule header_extraction:
   input:
@@ -395,11 +423,13 @@ rule promoter_clustering:
     script_seq_extraction = "src/scripts/seq_extraction_by_id.py",
     promoter_dir = "out/uncom_data/promoter"
   output:
-    promoter_cluster = directory("out/uncom_data/promoter_cluster/"),
+    promoter_cluster = directory("out/uncom_data/promoter_cluster/")
   shell:
     """
-    {input.script_seq_extraction} -id {input.cds_ids} -f {input.promoter_dir} -o {output.promoter_cluster}
+    mkdir -p {output.promoter_cluster}/
+    {input.script_seq_extraction} -id {input.cds_ids} -f {input.promoter_dir} -o {output.promoter_cluster}/
     """
+
 
 rule global_alignment:
   input:
@@ -432,15 +462,10 @@ rule global_align_filtration:
   shell: 
     """
     #cds
-    {params.filter_path} -f {input.cds_align} -o {output.cds_align_filtration}/{wildcards.file}  >> tables/global_poor_alignment_cds.csv || true
+    {params.filter_path} -f {input.cds_align} -o {output.cds_align_filtration}  >> tables/global_poor_alignment_cds.csv || true
     #promoter
-    {params.filter_path} -f {input.promoter_align} -o {output.promoter_align_filtration}/{wildcards.file}  >> tables/global_poor_alignment_pr.csv || true
+    {params.filter_path} -f {input.promoter_align} -o {output.promoter_align_filtration} >> tables/global_poor_alignment_pr.csv || true
     """
-
-
-
-
-
     
 rule local_alignment:
   input:
@@ -458,7 +483,6 @@ rule local_alignment:
 
     #promoter
     ./src/scripts/get_homologues/annotate_cluster.pl -f {input.promoter_cluster} -o {output.promoter_local_align} >>  out/logs/aln_local_pr_log.txt 
-    #promoter
 
     """
 
@@ -498,6 +522,7 @@ rule trimal_alignment:
     -automated1 >> out/logs/trimal_pr_local_log.txt 
 
     """
+  
 
 
 rule nucleotide_diversity:
@@ -517,14 +542,67 @@ rule nucleotide_diversity:
   shell: 
     """
     echo "Computing nucleotide diversity for cds_global_trimal..." 
-    parallel -j {params.threads} 'python {params.diversity_path} -f {{}} -o {output.diversity_cds_global}' ::: {input.trimal_cds_global_align}/*.fna
+    parallel -j {params.threads} 'python {params.diversity_path} -f {{}} -o {output.diversity_cds_global}' ::: {input.trimal_cds_global_align}/*.fna > cds_global.log 2> cds_global.err
 
     echo "Computing nucleotide diversity for promoter_global_trimal..."
-    parallel -j {params.threads} 'python {params.diversity_path} -f {{}} -o {output.diversity_pr_global}' ::: {input.trimal_pr_global_align}/*.fna
+    parallel -j {params.threads} 'python {params.diversity_path} -f {{}} -o {output.diversity_pr_global}' ::: {input.trimal_pr_global_align}/*.fna 
 
     echo "Computing nucleotide diversity for cds_local_trimal..." 
-    parallel -j {params.threads} 'python {params.diversity_path} -f {{}} -o {output.diversity_cds_local}' ::: {input.trimal_cds_local_align}/*.fna
-    
+    parallel -j {params.threads} 'python {params.diversity_path} -f {{}} -o {output.diversity_cds_local}' ::: {input.trimal_cds_local_align}/*.fna 
+
     echo "Computing nucleotide diversity for promoter_local_trimal..." 
-    parallel -j {params.threads} 'python {params.diversity_path} -f {{}} -o {output.diversity_pr_local}' ::: {input.trimal_pr_local_align}/*.fna
+    find {input.trimal_pr_local_align} -name "*.fna" | parallel -j {params.threads} 'python {params.diversity_path} -f {{}} -o {output.diversity_pr_local}' 
     """
+
+rule pangenome_occupancy_table:
+  input:
+    pangenome_matrix_shell= "out/clusters_cds/pangenome_matrix_t4__shell_list.txt",
+    pangenome_matrix_softcore= "out/clusters_cds/pangenome_matrix_t4__softcore_list.txt"
+
+  output:
+    pangenome_table = "tables/pangenome.csv",
+    occupancy_table = "tables/occupancy_number.csv"
+
+  shell: 
+    """
+    #load pangenome table 
+    sed 's/$/,shell/' {input.pangenome_matrix_shell} > tables/pangenome_matrix_t0__shell_list.txt
+    sed 's/$/,core/' {input.pangenome_matrix_softcore} > tables/pangenome_matrix_t0__softcore_list.txt
+    cat tables/pangenome_matrix_t0__shell_list.txt tables/pangenome_matrix_t0__softcore_list.txt > {output.pangenome_table}
+    
+    #load occupancy table 
+    cat out/cds_est_homologues/BdistachyonABR2337v1_4taxa_algOMCL_e1_.cluster_list |\
+    grep "taxa"|cut -d " " -f 4,6|perl -p -e 's/taxa=/,/'|\
+    perl -lane 'print $F[1],$F[0]'> {output.occupancy_table}
+    """
+
+rule nucleotide_diversity_global_plot:
+  input:
+    script_nucleotide_diversity_plot = "src/scripts/nucleotide_diversity_plot.R"
+  output:
+    q_boxplot = "figures/nucleotide_diversity_global.png"
+  
+  shell:
+    "Rscript {input.script_nucleotide_diversity_plot}  /home/ammar/ammar/snakemake_improve"
+
+
+rule Mash_distance_estimation:
+  input:
+    cds_cluster= "out/clusters_cds/",
+    promoter_cluster= "out/uncom_data/promoter_cluster/"
+  output:
+    cds_mash = directory("out/cds_mash/"),
+    promoter_mash = directory("out/promoter_mash/"),
+  params:
+    script_mash = "src/scripts/mash2cluster.py",
+    threads = 20
+
+  shell:
+    """
+    mkdir -p {output.cds_mash} {output.promoter_mash}
+    echo "Computing mash distance for cds..." 
+    find {input.cds_cluster} -name "*.fna" | parallel -j {params.threads} 'python {params.script_mash} {{}} {output.cds_mash}/'
+
+    echo "Computing mash distance for promotrs..." 
+    find {input.promoter_cluster} -name "*.fna" | parallel -j {params.threads} 'python {params.script_mash} {{}} {output.promoter_mash}/'
+    """ 
