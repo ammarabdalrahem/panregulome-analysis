@@ -606,3 +606,118 @@ rule Mash_distance_estimation:
     echo "Computing mash distance for promotrs..." 
     find {input.promoter_cluster} -name "*.fna" | parallel -j {params.threads} 'python {params.script_mash} {{}} {output.promoter_mash}/'
     """ 
+
+
+rule median_mash_distance:
+  input:
+    cds_mash = "out/cds_mash/",
+    promoter_mash = "out/promoter_mash/",
+  output:
+    cds_median_mash = "tables/total_med_mash_dist_cds.csv",
+    promoter_median_mash = "tables/total_med_mash_dist_pr.csv",
+  params:
+    script_median_mash = "src/scripts/median_mash_distance.py",
+    threads = 20
+
+  shell:
+    """
+    #how we extract mash distance from mash output
+    for i in $(ls {input.cds_mash}/*_mash) ; do
+      filename=$(basename "$i")
+      cat $i | perl -pe 's/\t/,/g' | cut -d "," -f 3 | paste -sd , > {input.cds_mash}/$filename.dist
+    done
+
+    for i in $(ls {input.promoter_mash}/*_mash) ; do
+      filename=$(basename "$i")
+      cat $i | perl -pe 's/\t/,/g' | cut -d "," -f 3 | paste -sd , > {input.promoter_mash}/$filename.dist
+    done
+
+    #how we calculate the median script for all cluster and save it 
+    find {input.cds_mash} -name "*.dist" | parallel -j {params.threads} 'python {params.script_median_mash} {{}} >> {output.cds_median_mash}'
+    find {input.promoter_mash} -name "*.dist" | parallel -j {params.threads} 'python {params.script_median_mash} {{}} >> {output.promoter_median_mash}'
+    """
+
+rule mash_distance_plot:
+  input:
+    script_mash_plot = "src/scripts/mash_dist_plot.R"
+  output:
+    mash_boxplot = "figures/mash_distance.png",
+    data_summary_mash = "tables/data_summary_mash.csv"
+  
+  shell:
+    """
+    echo "Running mash_distance_plot rule..."
+    Rscript {input.script_mash_plot} /home/ammar/ammar/snakemake_improve
+    rm  Rplots.pdf
+    """
+
+rule promoters_soft_extraction:
+  input:
+    script_soft_pr = "src/scripts/promoters_soft_extraction.sh"
+  output:
+    data_pr_soft = directory ("out/uncom_data/promoter_soft/")
+  
+  shell:
+    "bash {input.script_soft_pr}"
+
+
+rule promoters_soft_clustering:
+  input:
+    cds_ids = "out/uncom_data/cds/clusters_cds_ids/",
+    script_seq_extraction = "src/scripts/seq_extraction_by_id.py",
+    promoter_soft_dir = "out/uncom_data/promoter_soft/"
+  output:
+    promoter_soft_cluster = directory("out/uncom_data/promoter_soft_cluster/")
+  shell:
+    """
+    mkdir -p {output.promoter_soft_cluster}/
+    python {input.script_seq_extraction} -id {input.cds_ids} -f {input.promoter_soft_dir} -o {output.promoter_soft_cluster}/
+    """
+
+
+
+rule mask_cds_soft:
+  input:
+    cds_files = "out/uncom_data/cds/",
+
+  output:
+    cds_masked = directory("out/uncom_data/cds_masked/"),
+
+  shell:
+  """
+  # run repeat masking and annotation tools for all fasta files
+  ls -1 out/uncom_data/cds/*.fa| # move to work directory that contain fasta format
+      sort -u | #sort all files by alphabetical arrangement
+      while read i
+      do
+          NAME_base=$(basename $i)
+          echo "$NAME_base"
+          ./Red2Ensembl.py  out/uncom_data/cds/${{NAME_base}}  out/uncom_data/cds_masked/${{NAME_base}}_file \
+          --msk_file out/uncom_data/cds_masked/${{NAME_base}}.sm.fna \
+          --bed_file out/uncom_data/cds_masked/${{NAME_base}}.bed --cor 16 
+
+      done
+
+  """
+
+
+
+  
+rule count_TEs_soft_masked:
+  input:
+    promoter_soft_cluster = "out/uncom_data/promoter_soft_cluster/",
+    script_count_TEs = "src/scripts/count_masked_regions.py"
+
+  output:
+    count_masked_regions_promoter = "tables/count_te_sm_pr.csv",
+  
+  params:
+    threads = 20
+
+  shell:
+    """
+    find {input.promoter_soft_cluster} -name "*.fna" | \
+    parallel -j {params.threads} 'python {input.script_count_TEs} {{}}\
+    >> {output.count_masked_regions_promoter}'
+    """
+
