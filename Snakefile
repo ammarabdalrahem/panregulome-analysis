@@ -679,37 +679,48 @@ rule promoters_soft_clustering:
 rule mask_cds_soft:
   input:
     cds_files = "out/uncom_data/cds/",
+    script_mask_soft = "./src/scripts/masking_repeats/plant-scripts/repeats/Red2Ensembl.py"
 
   output:
     cds_masked = directory("out/uncom_data/cds_masked/"),
 
   shell:
-  """
-  # run repeat masking and annotation tools for all fasta files
-  ls -1 out/uncom_data/cds/*.fa| # move to work directory that contain fasta format
-      sort -u | #sort all files by alphabetical arrangement
-      while read i
-      do
-          NAME_base=$(basename $i)
-          echo "$NAME_base"
-          ./Red2Ensembl.py  out/uncom_data/cds/${{NAME_base}}  out/uncom_data/cds_masked/${{NAME_base}}_file \
-          --msk_file out/uncom_data/cds_masked/${{NAME_base}}.sm.fna \
-          --bed_file out/uncom_data/cds_masked/${{NAME_base}}.bed --cor 16 
+    """
+    # Run repeat masking and annotation tools for all fasta files
+    for i in {input.cds_files}/*.fa; do
+      NAME_base=$(basename "$i")
+      echo "$NAME_base"
+      {input.script_mask_soft} "$i" "out/uncom_data/cds_masked/${{NAME_base}}_file" \
+      --msk_file "out/uncom_data/cds_masked/${{NAME_base}}.sm.fna" \
+      --bed_file "out/uncom_data/cds_masked/${{NAME_base}}.bed" --cor 16 
+    done
+    """
 
-      done
 
-  """
-
+rule cds_sm_clustering:
+  input:
+    cds_ids = "out/uncom_data/cds/clusters_cds_ids/",
+    script_seq_extraction = "src/scripts/seq_extraction_by_id.py",
+    cds_sm_dir = "out/uncom_data/cds_masked"
+  output:
+    cds_sm_cluster = directory("out/uncom_data/cds_cluster/")
+  shell:
+    """
+    mkdir -p {output.cds_sm_cluster}/
+    {input.script_seq_extraction} -id {input.cds_ids} -f {input.cds_sm_dir} -o {output.cds_sm_cluster}/
+    """
 
 
   
 rule count_TEs_soft_masked:
   input:
     promoter_soft_cluster = "out/uncom_data/promoter_soft_cluster/",
+    cds_masked = "out/uncom_data/cds_cluster/",
     script_count_TEs = "src/scripts/count_masked_regions.py"
 
   output:
     count_masked_regions_promoter = "tables/count_te_sm_pr.csv",
+    count_masked_regions_cds = "tables/count_te_sm_cds.csv"
   
   params:
     threads = 20
@@ -719,5 +730,9 @@ rule count_TEs_soft_masked:
     find {input.promoter_soft_cluster} -name "*.fna" | \
     parallel -j {params.threads} 'python {input.script_count_TEs} {{}}\
     >> {output.count_masked_regions_promoter}'
+    find {input.cds_masked} -name "*.fna" | \
+    parallel -j {params.threads} 'python {input.script_count_TEs} {{}}\
+    >> {output.count_masked_regions_cds}'
     """
+
 
