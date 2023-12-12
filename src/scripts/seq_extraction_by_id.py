@@ -15,7 +15,7 @@ def run(args):
 
     print("reading promoter sequences...")
     seqs={}
-    for filename in glob.glob(path + '/*fa.sm.*', recursive=False):
+    for filename in glob.glob(path + '/*fa.sm.*', recursive=False) + glob.glob(path + '/*.fa.pr.*', recursive=False):
         with open(filename) as file:
             for line in file :
                 if line[0] == ">":                      #read the header
@@ -65,9 +65,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-# to run it for promoter    
-# ./src/scripts/seq_extraction_by_id.py -f out/cds/cds_sm  -id out/cds/clusters_cds_ids -o out/cds/clusters_cds_sm/
-# to change the name
-# for f in ./*.txt; do  mv -- "$f" "${f%.fna.txt}.fna"; done
