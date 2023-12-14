@@ -9,20 +9,23 @@ for (package in required_packages) {
   }
 }
 
-#set your data directory
-setwd("C:/Users/ammar/Desktop/workR")
+# Get the directory path of the currently active script
+current_path <- normalizePath(commandArgs(trailingOnly = TRUE)[1])
+
+# Print or use the relative path as needed
+print(current_path)
 
 # Load dataset
 count_te_cds <- read.table(file = "count_te_sm_cds.csv", 
-                       sep=",",
-                       header = F)      #load cds data
+                           sep=",",
+                           header = F)      #load cds data
 
 colnames(count_te_cds) <- c("cluster.name","total_length","te_length","TE_cds%")                     #create headers
 count_te_cds[, -c(1,4)] <- NULL   #remove  col.
 
 count_te_pr <- read.table(file = "count_te_sm_pr.csv",
-                      sep=",",
-                      header = F)                                 #load cds data
+                          sep=",",
+                          header = F)                                 #load cds data
 
 
 colnames(count_te_pr) <- c("cluster.name","total_length","te_length","TE_pr%")   
@@ -99,7 +102,7 @@ colnames(te_data)<- c("cluster.name","pangenome","occupancy_number","cds_promote
 te_data <- te_data[!is.na(te_data$TEs_precentage), ]
 
 #choose only promoter 
-te_data <- te_data %>% filter(cds_promoter == "TE_pr%")
+#te_data <- te_data %>% filter(cds_promoter == "TE_pr%")
 
 # creat levels for x axis
 data_levels <- levels(as.factor(as.numeric(as.character(te_data$occupancy_number))))
@@ -111,15 +114,19 @@ te_data$occupancy_number <- factor(te_data$occupancy_number, levels=(data_levels
 te_data$pangenome <- factor(te_data$pangenome, levels=c('shell','core'))
 
 #plot
-#ggsave(file="ahh.png", width=18, height=7, dpi=300)
 
-
-ggplot(te_data)+(aes(x=occupancy_number, y=TEs_precentage,color=cds_promoter,fill=cds_promoter)) + 
+p <- ggplot(te_data)+(aes(x=occupancy_number, y=TEs_precentage,color=cds_promoter,fill=cds_promoter)) + 
   geom_boxplot() + facet_grid(.~pangenome, scale="free", space="free")+
   theme(strip.text.x = element_text(size =15))+
-  scale_fill_manual(name="",values = c("#3422f5"),labels = c("Promoters"))+
-  scale_colour_manual(name="",values = c("#8d85ed"),labels = c("Promoters"))+
+  scale_fill_manual(name="",values =c("#fc1717", "#3422f5"),labels =  c("CDS", "Promoters"))+
+  scale_colour_manual(name="",values = c("#ff5e5e","#8d85ed"),labels = c("CDS", "Promoters"))+
   xlab("Occupancy")+ ylab("TEs_precentage")+
   theme(axis.title=element_text(size=15))+
-  theme(legend.text = element_text(size=15))
-#dev.off()
+  theme(legend.text = element_text(size=15)) +
+  stat_compare_means(method="t.test",label ="p.signif")
+
+# Save the plot
+ggsave(file="figures/nucleotide_diversity_global.png", plot=p, width=18, height=7, dpi=300)
+
+# Close the graphics device
+dev.off()
