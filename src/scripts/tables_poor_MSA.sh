@@ -1,2 +1,1 @@
-for i in $(cat out/promoter/promoter_cluster/list.pr ); do echo -n $i ;echo -n ",";cat out/promoter/promoter_cluster/$i |grep ">"|wc -l ;done > tables/total_seq_cluster_pr_.csv
-
+for file in out/uncom_data/promoter_cluster/*; do echo -n "$(basename "$file"),"; grep ">" "$file" | wc -l; done > tables/total_seq_cluster_pr.csv
