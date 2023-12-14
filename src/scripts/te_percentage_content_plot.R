@@ -126,7 +126,10 @@ p <- ggplot(te_data)+(aes(x=occupancy_number, y=TEs_precentage,color=cds_promote
   stat_compare_means(method="t.test",label ="p.signif")
 
 # Save the plot
-ggsave(file="figures/nucleotide_diversity_global.png", plot=p, width=18, height=7, dpi=300)
+ggsave(file="figures/ TEs_content.png", plot=p, width=18, height=7, dpi=300)
 
 # Close the graphics device
 dev.off()
+
+
+#Rscript {input.script_mash_plot} /home/ammar/ammar/snakemake_improve
