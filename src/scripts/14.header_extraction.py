@@ -15,7 +15,10 @@ def run(args):
 
     for line in fasta:
       if line[0] == '>':
-        headers.append(line.split(" ")[0][1:])
+        header = line.split(" ")[0][1:]
+        if '.' in header:
+          header = header.split('.')[0]
+        headers.append(header)
     for i in headers:
       output.write(i + "\n")
 
