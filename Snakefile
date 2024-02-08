@@ -466,7 +466,31 @@ rule global_align_filtration:
     #promoter
     {params.filter_path} -f {input.promoter_align} -o {output.promoter_align_filtration} >> tables/global_poor_alignment_pr.csv || true
     """
-    
+
+rule global_align_filtration_2:
+  input:
+    cds_align = "out/aln_cds/",
+    promoter_align = "out/aln_promoter/"
+  output:
+    cds_align_filtration = "out/aln_cds/aln_cds_filtered2/",
+    promoter_align_filtration = "out/aln_promoter/aln_promoter_filtered2/"
+
+  params:
+    filter_path = "./src/scripts/filter_global_alignment.py"
+   
+
+  shell: 
+    """
+    mkdir -p {output.cds_align_filtration} {output.promoter_align_filtration}
+
+    # Parallel processing for CDS alignment
+    find {input.cds_align} -maxdepth 1 -type f -name '*.fna' | parallel --jobs 10 '{params.filter_path} -f {{}} -o {output.cds_align_filtration}/{{/}} >> tables/global_poor_alignment_cds2.csv || true'
+
+    # Parallel processing for promoter alignment
+    find {input.promoter_align} -maxdepth 1 -type f -name '*.fna' | parallel --jobs 10 '{params.filter_path} -f {{}} -o {output.promoter_align_filtration}/{{/}} >> tables/global_poor_alignment_pr2.csv || true'
+    """
+
+
 rule local_alignment:
   input:
     data_homologues = "out/cds_est_homologues/BdistachyonABR2337v1_4taxa_algOMCL_e1_/{file}",
@@ -709,8 +733,6 @@ rule cds_sm_clustering:
     mkdir -p {output.cds_sm_cluster}/
     {input.script_seq_extraction} -id {input.cds_ids} -f {input.cds_sm_dir} -o {output.cds_sm_cluster}/
     """
-
-
   
 rule count_TEs_soft_masked:
   input:
@@ -735,4 +757,16 @@ rule count_TEs_soft_masked:
     >> {output.count_masked_regions_cds}'
     """
 
+rule TEs_content_plot:
+  input:
+    script_TEs_content_plot = "src/scripts/te_percentage_content_plot.R"
+  output:
+    TEs_content_boxplot = "figures/TEs_content.png"
+  
+  shell:
+    """
+    echo "Running TEs_content_plot rule..."
+    Rscript {input.script_TEs_content_plot} /home/ammar/ammar/snakemake_improve
+    rm  Rplots.pdf
+    """
 
